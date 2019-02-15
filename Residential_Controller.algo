@@ -58,12 +58,12 @@ END SEQUENCE
 'ca send the request with levator and the floor
 
 
-' when elevator is called the light open with direction and floo after they find the closier elevator and return this one
+' when elevator is called the light open with direction and floor after they find the closier elevator and return this one
 SEQUENCE CallElevator USING direction AND Floor
   CALL FloorButtonLightOn WITH direction AND Floor
+  CALL CallButtonLightOn WITH RequestFloor RETURNING RequestedFloor
   CALL FindBestElevator WITH drection AND Floor RETURNING Elevator
   CALL SendRequestElevator WITH Floor AND Elevator
-  CALL CallButtonLightOn WITH RequestFloor RETURNING RequestedFloor
   CALL SendRequestElevator WITH floor AND RequestedFloor
 
 END SEQUENCE
@@ -164,7 +164,7 @@ SEQUENCE MoveDownElevator USING ElevatorFloor AND Floor
 END SEQUENCE
 ---------------------------------------------------------------------------------------------------------------------------
 
-' add buttons that go in the same direction of the list of levator
+' add buttons that go in the same direction of the list of Elevator
 
 SEQUENCE SendRequestElevator USING Floor AND Elevator 
   ADD CallButtonFloor OR RequestedFloor to FloorList THEN
@@ -184,7 +184,7 @@ END SEQUENCE
 -------------------------------------------------------------------------------------------------------------------------
 
 
-' for each buttons called with direction and Floor return CallButton
+' for each buttons called with direction and Floor return outside  button "CallButton"
 SEQUENCE FindCallButton USING direction AND Floor
   FOR EACH  CallButton in CallButtons
     IF direction = CallButton Direction AND Floor = CallButtonFloor THEN
@@ -199,9 +199,9 @@ END SEQUENCE
 ' '2nd best option if levator is on your floors and its status is pending (stand by)
 ' '3rd best option if he is moving up or stop and you call up he sends it to you
 ' '3.1 a best option if he is moving down or stopping and you are calling down he sends it to you
-' 4th best option if the levator is waiting without any direction
+' 4th best option if the Elevator is waiting without any direction
 ' you close all if and for and sequence if no adds
-' it's called the sequence that finds the least levator occupy and sends it to you
+' it's called the sequence that finds the least elevator occuped and sends it to you
 
 
 '  find the best elevator for people with 2 objects (direction and Floor)
@@ -209,7 +209,7 @@ SEQUENCE FindBestElevator WITH direction AND Floor
 
 
   FOR EACH Elevator in Elevators 
-' best option the Elevator is the same Floor and Doorss is open
+' best option the Elevator is the same Floor and Doors is open
    If Floor  = Elevator Floor AND direction = Elevator direction AND  Elevator status = STOPPED THEN 
     
     CALL SendRequestElevator WITH Floor AND Elevator 
@@ -271,8 +271,8 @@ END SEQUENCE
 '
 ' function to reset button orders in ascending and descending order
 
-' class la request list en ordre
-SEQUENCE SortList USING direction AND Elevator FloorList
+' Make in order in the list of each elevator floors
+SEQUENCE SortList USING direction AND FloorList
   SET FloorList to SortedFloorList
 
     IF direction = UP THEN 
@@ -296,28 +296,27 @@ END SEQUENCE
 
 SEQUENCE FindNearestElevator USING Floor AND Elevator CageFloor
   COMPUTE RefGap AS BETWEEN Floor AND Elevator CageFloor 
-    SET ElevatorShortestGap = RefGap
+    SET ShortestGap = RefGap
 
   FOR EACH Elevator in Elevators 
     IF Elevator direction = direction THEN
-
       COMPUTE Gap AS DIFFERENCE BETWEEN Floor AND Elevator Floor
-     IF Gap < ElevatorShortestGap
-        SET ElevatorShortestGap = Gap
 
+     IF Gap < ShortestGap
+        SET ShortestGap = Gap
 
     END If    
     END IF
   END FOR
 
 ' have just used what is found in the loop and returns the NearestElevator
-  DETERMINE NearestElevator WITH Elevator ShortestGap
+  DETERMINE NearestElevator WITH ShortestGap
     RETURN NearestElevator
 
 END DETERMINE
 END SEQUENCE
 -------------------------------------------------------------------------------------------------------------------------------------------------
-' create a list that determines the least occupy of the ist and the length of it and it returns the least occupies the elevator
+' create a list that determines the least occuped of the list and the length of it and it returns the least occuped the elevator
 ' List for every button Elevators
 
 SEQUENCE ElevatorList
@@ -328,10 +327,10 @@ SEQUENCE ElevatorList
 END SEQUENCE
 --------------------------------------------------------------------------------------------------------------------------------------
 
-' fait le tour de tout les elevator and clear all request list
+' Check all elevators and clear all request list
 SEQUENCE OperateBattery
   WHILE battery status = Operational
-    FOR EACH Elevator = Elevators
+    FOR EACH Elevator in Elevators
      WHILE Elevator FloorList =  NOT EMPTY
       READ NextFloor FROM FloorList
 
