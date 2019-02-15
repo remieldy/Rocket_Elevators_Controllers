@@ -23,7 +23,6 @@
 ' RETURN = You Send
 ' RETURNING =  You receved
 
-
 SEQUENCE init_System
     SET battery STATUS = OPERATIONAL   
     SET column1 is covering floor <= 16
@@ -33,37 +32,37 @@ SEQUENCE init_System
     SET Elevator Starting position = 1
     SET Elevators status TO IDLE
     SET Elevators Doors TO CLOSED
+    CALL OperateBattery
  END SEQUENCE
     --------------------------------------------------------------------------------------------------------------------------------------
 
- 
-
 SEQUENCE OperateBattery
   WHILE battery status = Operational
-    FOR EACH Elevator = Elevators
+    CALL MainPanelFloor WITH floor AND columns RETURNING column
+    FOR EACH Elevator in Elevators
      WHILE Elevator FloorList =  NOT EMPTY
-      READ NextFloor FROM FloorList
+      READ Elevator Next Floor FROM Elevator FloorList
 
       
-        IF NextFloor = ElevatorFloor THEN
+     '  next floor is equal to this one
+        IF Elevator Next Floor = Elevator Floor THEN
           CALL OpenDoors THEN
-          CALL CallButtonLightOff
-          CALL *** mettre le show display**
-     
+          CALL CallButtonLightOff THEN
+          CALL FloorButtonLightOff THEN
+          Call MainPanelDisplay THEN
+          REMOVE CallButtonFloor OR Elevator RequestedFloor TO Elevator FloorList 
 
-        ELSE IF NextFloor <  ElevatorFloor THEN
+
+        ELSE IF Elevator Next Floor <  Elevator Floor THEN
           CALL MovingStatus THEN
           CALL OperateDown THEN
-          CALL StoppedStatus THEN
-          CALL OpenDoors THEN
-          CALL CallButtonLightOff
+          CALL CallButtonLightOn
 
-          ELSE IF NextFloor >  ElevatorFloor THEN
+
+
+          ELSE IF Elevator Next Floor >  Elevator Floor THEN
           CALL MovingStatus THEN
           CALL OperateUp THEN
-          CALL StoppedStatus THEN
-          CALL OpenDoors THEN
-          CALL CallButtonLightOff
          
 
         END IF          
@@ -72,18 +71,44 @@ SEQUENCE OperateBattery
    END FOR    
 END SEQUENCE
 -------------------------------------------------------------------------------------------------------------------
-    
+
+'// Inside button Light ON ////
+SEQUENCE FloorButtonLightOn USING RequestedFloor
+   CALL FindFloorRequestButton WITH RequestedFloor RETURNING FloorRequestButton
+   SET FloorButtonLight to ON 
+END SEQUENCE
+------------------------------------------------------------------------------------------------------------------------------
+
+'// Inside button Light OFF //
+SEQUENCE FloorButtonLightOff USING RequestedFloor
+   CALL FindFloorRequestButton WITH RequestedFloor RETURNING FloorRequestButton
+   SET FloorButtonLight to OFF 
+END SEQUENCE
+------------------------------------------------------------------------------------------------------------------------------
+' when you push the button ouside elevator after showing direction and floor the light turn ON
+SENQUENCE CallButtonLightOn  USING RequestedFloor
+  CALL FindCallButton WITH direction AND Floor RETURNING CallButton
+  SET CallButton Light On
+END SEQUENCE
+
+----------------------------------------------------------------------------------------------------------------------------
+
+' when you push the button ouside elevator after showing direction and floor the light turn OFF 
+SEQUENCE CallButtonLightOff  USING RequestedFloor
+  CALL FindCallButton WITH direction AND Floor RETURNING CallButton
+  SET CallButtonLightOff
+END SEQUENCE
+---------------------------------------------------------------------------------------------------------------------------------
 
     SEQUENCE CallElevators USING RequestFloor AND column THEN
-        CALL MainPanelFloor RETURNING column THEN
         CALL FindBestElevator WITH column THEN
-        CALL MainPanelDisplay WITH RequestFloor THEN
-        CALL InsideDisplay WITH RequestFloor
+        CALL MainPanelDisplay WITH Elevator RequestFloor THEN
+        CALL InsideDisplay WITH Elevator RequestFloor
 
 
     END SEQUENCE
     ----------------------------------------------------------------------------------------------
-    'For each column in batteyr if the floor is restricted too each difened by itself
+    'For each column in battery if the floor is restricted too each difened by itself
     ' pour cahque clumn dans ma battery column if this not  restricted floor is  <= a 16 than they Cumpute 
 
 
@@ -93,27 +118,27 @@ SEQUENCE MainPanelFloor USING floor AND columns
 
             IF RequestFloorButton <= 16 THEN
             SET column TO column1
-            ADD RequestFloor TO FloortList 
-            RETURN FloortList
+            ADD Elevator RequestFloor TO ElevatorFloorList 
+            CALL CallElevators WITH Elevator RequestFloor AND column
             RETURN column
 
             ELSE IF RequestFloorButton > 16 AND <= 33 THEN
             SET column TO column2
-            ADD RequestFloor TO FloortList
-            RETURN FloortList
+            ADD Elevator RequestFloor TO ElevatorFloorList
+            CALL CallElevators WITH Elevator RequestFloor AND column
                 RETURN column
 
             ELSE IF RequestFloorButton > 34 AND <= 50 THEN
                 RETURN column
             SET column TO column3
-             ADD RequestFloor TO FloortList
-                RETURN FloortList
+             ADD Elevator RequestFloor TO Elevator FloorList
+            CALL CallElevators WITH Elevator RequestFloor AND column
                 RETURN column
 
             ELSE RequestFloorButton > 51 ANS <= 66 THEN
             SET column TO column4
-            ADD RequestFloor TO FloortList
-                RETURN FloortList
+            ADD Elevator RequestFloor TO Elevator FloorList
+             CALL CallElevators WITH Elevator RequestFloor AND column
                 RETURN column
 
         END IF
@@ -124,17 +149,17 @@ END SEQUENCE
 ---------------------------------------------------------------------------------------------------------------------------------------
 ' moving elevator process
 SEQUENCE MovingStatus
-  SET Elevator status TO MOVING
+  SET Elevator status = MOVING
 END SEQUENCE
 -----------------------------------------------------------------------------------------------------------------------------------------
 ' Elevator Idle Status process
 SEQUENCE IdleStatus
-  SET Elevator status  TO IDLE
+  SET Elevator status  = IDLE
 END SEQUENCE
 --------------------------------------------------------------------------------------------------------------------------------------
 ' Elevator Stopped status process
 SEQUENCE StoppedStatus
-  SET Elevator status TO STOPPED
+  SET Elevator status = STOPPED
 END SEQUENCE
 -----------------------------------------------------------------------------------------------------------------------------------
 
@@ -146,8 +171,8 @@ END SEQUENCE
                 RETURN Elevator 
 
             ELSE IF ElevatorFloor  status = MOVING THEN
-                CALL SendRequest WITH ElevatorFloor AND status AND ShortList RETURNING LeastBusy
-                SET LeastBusy TO Elevator
+                CALL SendRequest WITH Elevator Floor AND status AND ShortList RETURNING ElevatorLeastBusy
+                SET ElevatorLeastBusy TO Elevator
                 RETURN Elevator
                     
         END IF
@@ -160,47 +185,46 @@ END SEQUENCE
 ' it puttin a list in descending order
 
 
-SEQUENCE SendRequest USING ElevatorFloor AND status AND FloortList 
+SEQUENCE SendRequest USING ElevatorFloor AND status AND ElevatorFloorList 
         FOR EACH CallButton in column
 
-        IF CallButton < ElevatorFloor AND status = MOVING 
-            ADD CallButton TO FloortList THEN
-                CUMPUTE FloortList BY DESCENDING ORDER
+        IF CallButton < Elevator Floor AND status = MOVING 
+            ADD CallButton TO ElevatorFloorList THEN
+                CUMPUTE ElevatorFloorList BY DESCENDING ORDER
         
-        ELSE IF  CallButton > ElevatorFloor AND status = MOVING 
-            ADD CallButton TO FloortList THEN
-                CUMPUTE FloortList BY DESCENDING ORDER
+        ELSE IF  CallButton > Elevator Floor AND status = MOVING 
+            ADD CallButton TO ElevatorFloorList THEN
+                CUMPUTE ElevatorFloorList BY DESCENDING ORDER
 
         END IF
-        RETURN FloortList      
-        CALL FindLeastBusy WITH FloortList
+        RETURN ElevatorFloorList      
+        CALL ElevatorFindLeastBusy WITH ElevatorFloorList
 END SEQUENCE
 -------------------------------------------------------------------------------------------------------------------------------
-'  ADD a list for alls floors in the building  and if the list is taller than FloorList than determine 
+'  ADD a list for alls floors in the building  and if the list is taller than ElevatorFloorList than determine 
 '  the LeastBusy list with this function
 
 
-SEQUENCE FindLeastBusy  USING column AND Elevator
+SEQUENCE ElevatorFindLeastBusy  USING column AND Elevator
     FOR EACH Elevator In Column 
 
-    SET ListLength TO TotalFloors
+    SET ElevatorListLength TO TotalFloors
 
-        IF ListLength > FloortList of Length 
+        IF Elevator ListLength > Elevator FloorList of Length 
 
-    SET ListLength TO Length of FloortList
+    SET Elevator ListLength TO Length of Elevator FloorList
         END IF
     END FOR
 
-    DETERMINE LeastBusy WITH ListLength
-        RETURN LeastBusy
+    DETERMINE Elevator LeastBusy WITH Elevator ListLength
+        RETURN Elevator LeastBusy
 END SEQUENCE
 ----------------------------------------------------------------------------------------------------------------------------------
-'  Elevator  Open and closing doors
-
+'  Elevator  Open and closing Doorss
 
 SEQUENCE OpenDoors
-   SET door = open
-   IF door = open THEN
+   SET Doors = open
+   IF Doors = open THEN
    init time to 10 sec THEN
         CALL CloseDoors
    ELSE IF stay Open
@@ -208,17 +232,17 @@ END SEQUENCE
 
 
 SEQUENCE CloseDoors
-   IF door is not obstruct THEN
-    Call CloseDoors
-   ELSE IF door is obstruct THEN
-       CALL OpenDoors
+   IF Doors is not obstruct THEN
+        Call CloseDoors
+   ELSE IF Doors is obstruct THEN
+        CALL OpenDoors
    END IF
 END SEQUENCE
 -----------------------------------------------------------------------------------------------------------------------------------
 ' outside button, customer pressed for selected is foor
 
 SEQUENCE FindCallButton USING direction AND Floor
-  FOR EACH  CallButton in CallButtons
+  FOR EACH CallButton in CallButtons
     IF direction = CallButton Direction AND Floor = CallButtonFloor THEN
       RETURN CallButton
     END IF
