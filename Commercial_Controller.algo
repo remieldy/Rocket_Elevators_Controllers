@@ -46,6 +46,7 @@ SEQUENCE OperateBattery
       
      '  next floor is equal to this one
         IF Elevator Next Floor = Elevator Floor THEN
+          CALL RemoveElevatorFloorList WITH elevatorFloor AND FloorList
           CALL OpenDoors THEN
           CALL CallButtonLightOff THEN
           CALL FloorButtonLightOff THEN
@@ -59,18 +60,24 @@ SEQUENCE OperateBattery
           CALL CallButtonLightOn
 
 
-
           ELSE IF Elevator Next Floor >  Elevator Floor THEN
           CALL MovingStatus THEN
           CALL OperateUp THEN
          
-
         END IF          
     END WHILE
           CALL IDLEStatus
    END FOR    
 END SEQUENCE
 -------------------------------------------------------------------------------------------------------------------
+SEQUENCE RemoveElevatorFloorList” Using elevatorFloor AND FloorList
+     FOR EACH elevatorSortedFloorList IN elevators SortedFloorList
+END IF
+    REMOVE elevatorFloor From floorList
+END SEQUENCE
+
+
+----------------------------------------------------------------------------------------------------
 
 '// Inside button Light ON ////
 SEQUENCE FloorButtonLightOn USING RequestedFloor
@@ -185,7 +192,7 @@ END SEQUENCE
 ' it puttin a list in descending order
 
 
-SEQUENCE SendRequest USING ElevatorFloor AND status AND ElevatorFloorList 
+SEQUENCE SendRequest USING ElevatorFloor AND status AND Elevator FloorList 
         FOR EACH CallButton in column
 
         IF CallButton < Elevator Floor AND status = MOVING 
@@ -198,7 +205,7 @@ SEQUENCE SendRequest USING ElevatorFloor AND status AND ElevatorFloorList
 
         END IF
         RETURN ElevatorFloorList      
-        CALL ElevatorFindLeastBusy WITH ElevatorFloorList
+        CALL ElevatorFindLeastBusy WITH Elevator FloorList
 END SEQUENCE
 -------------------------------------------------------------------------------------------------------------------------------
 '  ADD a list for alls floors in the building  and if the list is taller than ElevatorFloorList than determine 
@@ -225,7 +232,7 @@ END SEQUENCE
 SEQUENCE OpenDoors
    SET Doors = open
    IF Doors = open THEN
-   init time to 10 sec THEN
+   init time to 5 sec THEN
         CALL CloseDoors
    ELSE IF stay Open
 END SEQUENCE
