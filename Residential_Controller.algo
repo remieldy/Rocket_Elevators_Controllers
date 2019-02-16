@@ -16,7 +16,6 @@
 
 '  CloseDoorButton: Button located inside an elevator to request the closing of the Doors whenever possible
 
-
 ' NearestElevator: send the nearest Elevator
 
 ' CloseDoors: closing Doors
@@ -27,7 +26,7 @@
 
 ' CallButtonLightOn: outside light on
 
-' FindLeastBusyElevator:
+' FindLeastBusyElevator:Calculate The Less Busy Elevator for send for user 
 
 ' RefGap: stages where you have to call the button and stages or is the user
 
@@ -36,10 +35,7 @@
 ' FindFloorRequestButton:  inside elevator button
 
 '  idle =  stand by
-
 ------------------------------------------------------------------------------------------------------------------------------
-
-
 ' when the initial sequence is in operating mode all the columns to control by the baterry and all the elevator column to control by the elevators
 ' you close the 2 sequences then you set up an elevator in standby mode, set the initial status elevator to the RC, set the Doorss which it closes thereafter and you
 'close the sequence!
@@ -52,14 +48,13 @@ Sequence init_System
   CALL OperateBattery
 END SEQUENCE
 --------------------------------------------------------------------------------------------------------------------------------
-
 ' it finds levator using the floor and the direction then it turns on the light which indicates the direction and the placher
 ' then it calls the best elevator with the direction and the placher and it returns it
 'ca send the request with levator and the floor
 
 
 ' when elevator is called the light open with direction and floor after they find the closier elevator and return this one
-SEQUENCE CallElevator USING direction AND Floor
+SEQUENCE CallElevator USinG direction AND Floor
   CALL FloorButtonLightOn WITH direction AND Floor
   CALL CallButtonLightOn WITH RequestFloor RETURNING RequestedFloor
   CALL FindBestElevator WITH drection AND Floor RETURNING Elevator
@@ -68,13 +63,12 @@ SEQUENCE CallElevator USING direction AND Floor
 
 END SEQUENCE
 ------------------------------------------------------------------------------------------------------------------------------
-'//SEQUENCE IN WHICH THE USER WILL REQUEST A FLOOR IN THE ELEVATOR PANEL
 SEQUENCE RequestFloor USING RequestedFloor
    CALL FloorRequestButton WITH RequestedFloor
    CALL SendRequestElevator WITH RequestedFloor
 END SEQUENCE
 --------------------------------------------------------------------------------------------------------------------------------
-' Elevator Inside Request Button
+'Elevator Inside Request Button
 SEQUENCE FindFloorRequestButton USING FloorRequestedButton
   FOR EACH FloorRequestButton in FloorRequestButtons
     IF Floor = FloorRequestButton THEN
@@ -83,27 +77,24 @@ SEQUENCE FindFloorRequestButton USING FloorRequestedButton
   END FOR   
 END SEQUENCE
 ------------------------------------------------------------------------------------------------------------------------------
-'// Inside button Light ON ////
+'Inside button Light ON 
 SEQUENCE FloorButtonLightOn USING RequestedFloor
    CALL FindFloorRequestButton WITH RequestedFloor RETURNING FloorRequestButton
    SET FloorButtonLight to ON 
 END SEQUENCE
 ------------------------------------------------------------------------------------------------------------------------------
-'// Inside button Light OFF ////
+'  Inside button Light OFF 
 SEQUENCE FloorButtonLightOff USING RequestedFloor
    CALL FindFloorRequestButton WITH RequestedFloor RETURNING FloorRequestButton
    SET FloorButtonLight to OFF
 END SEQUENCE
 ----------------------------------------------------------------------------------------------------------------------------------
-
 ' when you push the button ouside elevator the light turn ON and show you the direction and Floor level
 SENQUENCE CallButtonLightOn  USING RequestedFloor
   CALL FindCallButton WITH direction AND Floor RETURNING CallButton
   SET CallButton Light On
 END SEQUENCE
-
 ----------------------------------------------------------------------------------------------------------------------------
-
 ' when you push the button ouside elevator after showing direction and floor the light turn OFF 
 SEQUENCE CallButtonLightOff  USING RequestedFloor
   CALL FindCallButton WITH direction AND Floor RETURNING CallButton
@@ -112,8 +103,6 @@ END SEQUENCE
 -------------------------------------------------------------------------------------------------------------------------------
 ' create a sequence when the Doors opens it remains open 10 seconds and it calls the function that closes the Doors'
 '  otherwise it stays open
-
-' SEQUENCE FOR ELEVATOR DOORS
 SEQUENCE OpenDoors
    SET Doors = open
    IF Doors = open THEN
@@ -122,7 +111,6 @@ SEQUENCE OpenDoors
    END IF
 END SEQUENCE
 --------------------------------------------------------------------------------------------------------------------------------
-'
 ' ELEVATOR DOOR CLOSING
 SEQUENCE CloseDoors
    IF Doors is not obstruct
@@ -131,12 +119,10 @@ SEQUENCE CloseDoors
        CALL OpenDoors
    END IF
 END SEQUENCE
-
 ----------------------------------------------------------------------------------------------------------------------------------
-' 
-' create a sequence that moves levator up with the levator and levator position,
-' then it categorizes all the elevator and if the letters are smaller and it increases by 1 each timer
-' it repeats until it finds the good stages
+' create a sequence that moves Elevator up with the Elevator and Elevator position,
+' then it categorizes all the Elevator and if Elevator are smaller and it increases by 1 each time,
+' and repeats until it finds the good stages
 
 'Moving Up Elevator
 SEQUENCE MoveUpElevator USING Elevator Floor AND Floor
@@ -163,16 +149,13 @@ SEQUENCE MoveDownElevator USING ElevatorFloor AND Floor
    END FOR
 END SEQUENCE
 ---------------------------------------------------------------------------------------------------------------------------
-
 ' add buttons that go in the same direction of the list of Elevator
-
 SEQUENCE SendRequestElevator USING Floor AND Elevator 
   ADD CallButtonFloor OR RequestedFloor to FloorList THEN
   CALL SortList WITH Elevator direction AND Elevator FloorList RETURNING SortedFloorList
   SET Elevator FloorList To SortedFloorList
 END SEQUENCE
 --------------------------------------------------------------------------------------------------------------------------
-
 ' Elevator Inside Request Button
 SEQUENCE FindFloorRequestButton USING FloorRequestedButton
   FOR EACH FloorRequestButton in FloorRequestButtons
@@ -182,8 +165,6 @@ SEQUENCE FindFloorRequestButton USING FloorRequestedButton
   END FOR   
 END SEQUENCE
 -------------------------------------------------------------------------------------------------------------------------
-
-
 ' for each buttons called with direction and Floor return outside  button "CallButton"
 SEQUENCE FindCallButton USING direction AND Floor
   FOR EACH  CallButton in CallButtons
@@ -207,70 +188,59 @@ END SEQUENCE
 '  find the best elevator for people with 2 objects (direction and Floor)
 SEQUENCE FindBestElevator WITH direction AND Floor
 
-
   FOR EACH Elevator in Elevators 
 ' best option the Elevator is the same Floor and Doors is open
    If Floor  = Elevator Floor AND direction = Elevator direction AND  Elevator status = STOPPED THEN 
     
+    ' call the user request with the level floor and elevator after they gonna return the elevator to user
     CALL SendRequestElevator WITH Floor AND Elevator 
-    RETURN Elevator
-
+      RETURN Elevator
 
 ' Second Options for better Elevator if Elevator = idle
   ELSE IF Floor = Elevator Floor AND Elevator status = IDLE THEN
     
     CALL SendRequestElevator WITH Floor AND Elevator 
-    RETURN Elevator
+      RETURN Elevator
 
-    
 '  Third Option for best elevator 
   ELSE IF Floor > Elevator Floor AND Elevator status = MOVING OR STOPPED AND Elevator direction = UP  THEN
     CALL SendRequestElevator WITH Floor AND Elevator 
     CALL FindNearestElevator WITH Floor AND Elevator CageFloor AND direction RETURNING NearestElevator
-  RETURN NearestElevator 
+      RETURN NearestElevator 
 
   ' fourth option for best elevator
   ELSE IF Floor < Elevator Floor AND Elevator status = MOVING OR STOPPED AND Elevator direction = DOWN  THEN
       CALL SendRequestElevator WITH Floor AND Elevator 
       CALL FindNearestElevator WITH Floor AND Elevator CageFloor AND direction RETURNING NearestElevator
-    RETURN NearestElevator
+        RETURN NearestElevator
 
 ' fifth option for the best elevator
   ELSE IF Elevator status = IDLE THEN
     CALL SendRequestElevator WITH Floor AND Elevator 
-    RETURN Elevator
-    
-    END IF
+      RETURN Elevator
+   END IF
+ END FOR
 
-  END FOR
-
-  ' call the Sequence and returning the LeastBusy elevator
+  'call the Sequence and returning the LeastBusy elevator
    CALL FindLeastBusyElevator RETURNING LeastBusyElevator
-   RETURN LeastBusyElevator
-
+    RETURN LeastBusyElevator
   END SEQUENCE
 ------------------------------------------------------------------------------------------------------------------------------------------------------
-
 ' Least busy Elevator for request
 SEQUENCE FindLeastBusyElevator 
-
 SET ListLength TO TotalFloor
 
   FOR EACH Elevator in Elevators 
 
     IF ListLength > Length of Elevator FloorList
      SET ListLength TO length of Elevator FloorList
-
     END IF
   DETERMINE LeastBusyElevator WITH ListLength
    RETURN LeastBusyElevator
   END FOR
 END SEQUENCE
-
 ---------------------------------------------------------------------------------------------------------------------------------------------------
-'
 ' function to reset button orders in ascending and descending order
-
 ' Make in order in the list of each elevator floors
 SEQUENCE SortList USING direction AND FloorList
   SET FloorList to SortedFloorList
@@ -292,22 +262,20 @@ END SEQUENCE
 ' then for each follower calculate the Gap and the elevator Floor
 ' Refgap is Elevator is looking for a distance then it goes around and finds the nearest and sends the closest
 
-
-
 SEQUENCE FindNearestElevator USING Floor AND Elevator CageFloor
   COMPUTE RefGap AS BETWEEN Floor AND Elevator CageFloor 
     SET ShortestGap = RefGap
 
-  FOR EACH Elevator in Elevators 
-    IF Elevator direction = direction THEN
-      COMPUTE Gap AS DIFFERENCE BETWEEN Floor AND Elevator Floor
+FOR EACH Elevator in Elevators 
+  IF Elevator direction = direction THEN
+    COMPUTE Gap AS DIFFERENCE BETWEEN Floor AND Elevator Floor
 
-     IF Gap < ShortestGap
-        SET ShortestGap = Gap
+  IF Gap < ShortestGap
+    SET ShortestGap = Gap
 
-    END If    
-    END IF
-  END FOR
+  END If    
+  END IF
+END FOR
 
 ' have just used what is found in the loop and returns the NearestElevator
   DETERMINE NearestElevator WITH ShortestGap
@@ -326,7 +294,6 @@ SEQUENCE ElevatorList
     RETURN Elevator LeastBusy
 END SEQUENCE
 --------------------------------------------------------------------------------------------------------------------------------------
-
 ' Check all elevators and clear all request list
 SEQUENCE OperateBattery
   WHILE battery status = Operational
@@ -339,20 +306,17 @@ SEQUENCE OperateBattery
           CALL OpenDoors THEN
           CALL CallButtonLightOff THEN
           CALL FloorButtonLightOff THEN
-          REMOVE CallButtonFloor OR RequestedFloor to FloorList 
+          REMOVE CallButtonFloor OR RequestedFloor tO FloorList 
 
-
-      '  the next floor is taller than this one move up
+      '  if the next floor is taller than this one move up
         ELSE IF NextFloor > Elevator Floor THEN
           CALL MovingStatus THEN
           CALL OperateUP 
-
          
-      '   the next floor is smaller than this one move down
+      ' if the next floor is smaller than this one move down
        ELSE IF NextFloor < Elevator Floor THEN
           CALL MovingStatus THEN
           CALL OperateDown 
-
 
         END IF          
     END WHILE
@@ -368,7 +332,7 @@ END SEQUENCE
 -----------------------------------------------------------------------------------------------------------------------------------------
 ' Elevator Idle Status process
 SEQUENCE IdleStatus
-  SET Elevator status  TO IDLE
+  SET Elevator status TO IDLE
 END SEQUENCE
 --------------------------------------------------------------------------------------------------------------------------------------
 ' Elevator Stopped status process
