@@ -70,26 +70,25 @@ SEQUENCE OperateBattery
    END FOR    
 END SEQUENCE
 -------------------------------------------------------------------------------------------------------------------
-SEQUENCE RemoveElevatorFloorList” Using elevatorFloor AND FloorList
+SEQUENCE RemoveElevatorFloorList WITH elevatorFloor AND FloorList
      FOR EACH elevatorSortedFloorList IN elevators SortedFloorList
 END IF
     REMOVE elevatorFloor From floorList
 END SEQUENCE
-
 
 ----------------------------------------------------------------------------------------------------
 
 '// Inside button Light ON ////
 SEQUENCE FloorButtonLightOn USING RequestedFloor
    CALL FindFloorRequestButton WITH RequestedFloor RETURNING FloorRequestButton
-   SET FloorButtonLight to ON 
+   SET FloorButtonLight tO ON 
 END SEQUENCE
 ------------------------------------------------------------------------------------------------------------------------------
 
 '// Inside button Light OFF //
 SEQUENCE FloorButtonLightOff USING RequestedFloor
    CALL FindFloorRequestButton WITH RequestedFloor RETURNING FloorRequestButton
-   SET FloorButtonLight to OFF 
+   SET FloorButtonLight tO OFF 
 END SEQUENCE
 ------------------------------------------------------------------------------------------------------------------------------
 ' when you push the button ouside elevator after showing direction and floor the light turn ON
@@ -106,6 +105,8 @@ SEQUENCE CallButtonLightOff  USING RequestedFloor
   SET CallButtonLightOff
 END SEQUENCE
 ---------------------------------------------------------------------------------------------------------------------------------
+' How Elevator work. He find the best elevator in column after showing customer number floor with request and
+' he show the number elevator inside elevator
 
     SEQUENCE CallElevators USING RequestFloor AND column THEN
         CALL FindBestElevator WITH column THEN
@@ -169,7 +170,8 @@ SEQUENCE StoppedStatus
   SET Elevator status = STOPPED
 END SEQUENCE
 -----------------------------------------------------------------------------------------------------------------------------------
-
+' find the best elevator to send for user with the request of user and  elevator floor ans the shortest list who panal are already order it
+' after he find the least busy elevator and send it too user
 
     SEQUENCE FindBestElevator USING ElevatorFloor AND column AND status AND direction
         FOR EACH Elevator in Column 
